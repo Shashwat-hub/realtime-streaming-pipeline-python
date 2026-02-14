@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  producer:
+    build: .
+    environment:
+      - SERVICE_ROLE=producer
+      - REDIS_HOST=redis
+      - BATCH_SIZE=${BATCH_SIZE:-5}
+      - SLEEP_INTERVAL=${SLEEP_INTERVAL:-1.0}
+      - RUN_DURATION_SECONDS=${PRODUCER_RUN_DURATION:-30}
+      - DATA_DIR=/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - pipeline-data:/data
+
+  consumer:
+    build: .
+    environment:
+      - SERVICE_ROLE=consumer
+      - REDIS_HOST=redis
+      - CONSUMER_NAME=consumer_1
+      - BATCH_SIZE=${BATCH_SIZE:-10}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - SLEEP_INTERVAL=${SLEEP_INTERVAL:-0.5}
+      - RUN_DURATION_SECONDS=${CONSUMER_RUN_DURATION:-35}
+      - THRESHOLD_TEMPERATURE=${THRESHOLD_TEMPERATURE:-80.0}
+      - THRESHOLD_HUMIDITY=${THRESHOLD_HUMIDITY:-70.0}
+      - THRESHOLD_PRESSURE=${THRESHOLD_PRESSURE:-1050.0}
+      - THRESHOLD_VIBRATION=${THRESHOLD_VIBRATION:-5.0}
+      - DATA_DIR=/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - pipeline-data:/data
+
+volumes:
+  pipeline-data:
