@@ -119,6 +119,7 @@ All settings are controlled via environment variables (set in `docker-compose.ym
 | `THRESHOLD_VIBRATION` | `5.0` | Degradation threshold |
 | `REDIS_HOST` | `redis` | Redis hostname |
 | `REDIS_PORT` | `6379` | Redis port |
+| `DATA_DIR` | `/data` (docker) / `./data` (local) | Directory for SQLite DB and DLQ storage |
 
 ---
 
@@ -199,6 +200,16 @@ print(f'Healthy:      {total - degraded}')
 | **At-least-once delivery** | Redis consumer groups (`XREADGROUP` + `XACK`) |
 
 ---
+
+## Scalability Considerations
+
+- Stateless producer and consumer enable horizontal scaling via multiple consumer replicas.
+- Redis consumer groups allow parallel message processing across multiple workers.
+- Current primary bottleneck is the SQLite sink (single-writer), which can be replaced with Postgres or a distributed store for higher throughput.
+- Stream partitioning (e.g., by zone or device_id) can be introduced for parallel log scaling similar to Kafka partitions.
+- Architecture is broker-agnostic and can migrate to Kafka/Kinesis without changing core processing logic.
+- This implementation prioritizes correctness and reliability semantics before infrastructure scaling.
+
 
 ## License
 
